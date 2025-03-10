@@ -1,0 +1,12 @@
+{
+  "files": {
+    "main.js": "/mentibot24/static/js/main.21b5dc48.js",
+    "static/js/453.c0a52c55.chunk.js": "/mentibot24/static/js/453.c0a52c55.chunk.js",
+    "index.html": "/mentibot24/index.html",
+    "main.21b5dc48.js.map": "/mentibot24/static/js/main.21b5dc48.js.map",
+    "453.c0a52c55.chunk.js.map": "/mentibot24/static/js/453.c0a52c55.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.21b5dc48.js"
+  ]
+}
