@@ -28,10 +28,7 @@ import ExploreIcon from '@mui/icons-material/Explore';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import AddIcon from '@mui/icons-material/Add';
 import { alpha } from '@mui/material/styles';
-
-// DeepSeek API configuration
-const DEEPSEEK_API_KEY = process.env.REACT_APP_DEEPSEEK_API_KEY;
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Create custom dark theme
 const theme = createTheme({
@@ -151,13 +148,16 @@ function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [apiKey, setApiKey] = useState(localStorage.getItem('gemini-api-key') || '');
 
-  const drawerItems = [
-    { text: 'New Thread', icon: <AddIcon />, shortcut: 'Ctrl + T' },
-    { text: 'Home', icon: <HomeIcon /> },
-    { text: 'Discover', icon: <ExploreIcon /> },
-    { text: 'Library', icon: <LibraryBooksIcon /> },
-  ];
+  const handleApiKeyChange = (event) => {
+    const newKey = event.target.value;
+    setApiKey(newKey);
+    localStorage.setItem('gemini-api-key', newKey);
+  };
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -169,57 +169,25 @@ function App() {
     setError(null);
 
     try {
-      const response = await fetch(DEEPSEEK_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert Model UN speech and debate advisor. Please provide responses that:
-                1. Use formal diplomatic language
-                2. Incorporate relevant UN frameworks and resolutions
-                3. Suggest specific examples and evidence
-                4. Maintain a balanced and diplomatic tone
-                5. Follow proper MUN protocol and etiquette`
-            },
-            {
-              role: 'user',
-              content: input
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000,
-          stream: false
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error:', errorData);
-        throw new Error(errorData.error?.message || 'API request failed');
-      }
-
-      const data = await response.json();
-      const text = data.choices[0].message.content;
-
-      setMessages(prev => [...prev, { 
-        text, 
-        sender: 'bot',
-        timestamp: new Date().toISOString()
-      }]);
-    } catch (error) {
-      console.error('Error:', error);
-      setError('Sorry, I encountered an error. Please check your API key and try again.');
+      const result = await model.generateContent(input);
+      const response = await result.response;
+      const text = response.text();
+      const assistantMessage = { text, sender: 'assistant' };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (err) {
+      console.error('API Error:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  const drawerItems = [
+    { text: 'New Thread', icon: <AddIcon />, shortcut: 'Ctrl + T' },
+    { text: 'Home', icon: <HomeIcon /> },
+    { text: 'Discover', icon: <ExploreIcon /> },
+    { text: 'Library', icon: <LibraryBooksIcon /> },
+  ];
 
   return (
     <ThemeProvider theme={theme}>
@@ -271,6 +239,55 @@ function App() {
                 {index === 0 && <Divider sx={{ my: 1, borderColor: '#2D3748' }} />}
               </React.Fragment>
             ))}
+            <ListItem 
+              button
+              sx={{
+                borderRadius: 2,
+                mx: 1,
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: 'text.secondary' }}>
+                <LightbulbIcon />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Settings" 
+                primaryTypographyProps={{ 
+                  sx: { color: 'text.primary' }
+                }}
+              />
+            </ListItem>
+            <ListItem 
+              button
+              sx={{
+                borderRadius: 2,
+                mx: 1,
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: 'text.secondary' }}>
+                <LightbulbIcon />
+              </ListItemIcon>
+              <ListItemText 
+                primary="API Key" 
+                primaryTypographyProps={{ 
+                  sx: { color: 'text.primary' }
+                }}
+              />
+              <TextField
+                value={apiKey}
+                onChange={handleApiKeyChange}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: '#111111',
+                  }
+                }}
+              />
+            </ListItem>
           </List>
         </Drawer>
 
